@@ -1,10 +1,9 @@
-from store import UserFact
 from langgraph.graph import MessagesState
 from langchain_core.messages import AIMessage, HumanMessage
 from langsmith import traceable
 from prompts import get_agent_prompt
 from config import llm
-from store import get_user_facts, save_user_fact
+from mcp_client import ShopMCPClient
 import json
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -19,7 +18,7 @@ class ResponseEvaluation(BaseModel):
     suggestion: Optional[str] = Field(None)
 
 
-def evaluate_response_structured(response_content: str) -> ResponseEvaluation:
+async def evaluate_response_structured(response_content: str) -> ResponseEvaluation:
     evaluation_prompt = f"""Evaluate this e-commerce customer service response:
 
 Response:
@@ -38,16 +37,25 @@ Return a structured evaluation."""
 
 
 @traceable(name="agent_node")
-def agent_node(state: MessagesState):
-    # === Long-term Memory Integration ===
-    # For demo, we use a fixed user_id. In real project, extract from context or auth.
-    user_id = "customer_001"  
-    
-    long_term_facts_dict = get_user_facts(user_id)
-    facts_list = [f"- {k}: {v}" for k, v in long_term_facts_dict.items()]
-    long_term_facts = "\n".join(facts_list) if facts_list else "No previous customer facts available."
+async def agent_node(state: MessagesState):   # 注意改为 async
+    user_id = "customer_001"
 
-    # === Agent Generation ===
+    # 通过 MCP 获取 Long-term + 当前订单/客户数据
+    async with ShopMCPClient() as mcp:
+        try:
+            customer = await mcp.get_customer(user_id)
+            long_term_facts = f"""
+    Customer Name: {customer.get('name', 'Unknown')}
+    Country: {customer.get('country', 'Unknown')}
+    Preferences: {customer.get('preferences', {})}
+    """
+            print(f"✅ MCP Success: Got customer data for {user_id}")
+            print(f"   Name: {customer.get('name')}")
+            print(f"   Preferences: {customer.get('preferences')}")
+        except Exception as e:
+            long_term_facts = "No customer data available from MCP."
+            print(f"❌ MCP Failed: {e}")
+
     prompt = get_agent_prompt()
     chain = prompt | llm
 
@@ -56,20 +64,18 @@ def agent_node(state: MessagesState):
         "long_term_facts": long_term_facts
     })
 
-    # === Enhanced Self-Correction ===
-    eval_result: ResponseEvaluation = evaluate_response_structured(response.content)
+    # Self-Correction
+    eval_result = await evaluate_response_structured(response.content)
 
-    print(f"📊 Evaluation Score: {eval_result.score:.2f} | Issues: {len(eval_result.issues)}")
+    print(f"📊 Evaluation Score: {eval_result.score:.2f}")
 
     if eval_result.score < 0.85 or len(eval_result.issues) > 1:
         print("🔄 Self-correction triggered...")
 
-        correction_prompt = f"""Previous response had issues:
-{chr(10).join([f"- {issue}" for issue in eval_result.issues])}
+        correction_prompt = f"""Previous response had issues: {eval_result.issues}
+Suggestion: {eval_result.suggestion or 'Improve accuracy and helpfulness.'}
 
-Suggestion: {eval_result.suggestion or 'Make it more accurate and helpful.'}
-
-Please generate a much better response."""
+Please generate a better response."""
 
         better_response = (prompt | llm).invoke({
             "messages": state["messages"] + [
@@ -79,29 +85,6 @@ Please generate a much better response."""
             "long_term_facts": long_term_facts
         })
 
-        # Save new facts from the conversation (simple extraction)
-        save_new_facts(user_id, state["messages"][-1].content, better_response.content)
-        
         return {"messages": [better_response]}
 
-    # Save facts even on normal responses
-    save_new_facts(user_id, state["messages"][-1].content, response.content)
     return {"messages": [response]}
-
-
-def save_new_facts(user_id: str, user_message: str, assistant_message: str):
-    """Simple fact extraction and saving"""
-    extract_prompt = f"""From the following conversation, extract any new important customer facts or preferences.
-Only return valid JSON like: {{"preference": "value", "fact": "value"}}
-
-Customer: {user_message}
-Agent: {assistant_message}
-"""
-
-    try:
-        structured_llm = llm.with_structured_output(UserFact)
-        result = structured_llm.invoke(extract_prompt)
-        for key, value in result.model_dump.items():
-            save_user_fact(user_id, key, value)
-    except:
-        pass  # Fail silently in demo

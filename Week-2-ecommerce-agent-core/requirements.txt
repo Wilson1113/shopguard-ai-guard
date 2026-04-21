@@ -7,3 +7,4 @@ langsmith
 langchain-community
 pydantic>=2.0
 python-dotenv
+fastmcp
