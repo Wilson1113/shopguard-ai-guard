@@ -1,31 +1,39 @@
-# Week 2: E-commerce Agent Core with LangSmith & Self-Correction
+# Week 2 + Week 3: E-commerce Agent Core with MCP Integration
 
 **Part of**: AI Agent Harness Learning Journey (6-Week Program)
-
-**Focus**: Production-grade observability, evaluation, and self-correction mechanisms using LangSmith.
 
 **Completed**: April 2026
 
 ## Overview
 
-In Week 2, I built the core of an E-commerce Customer Service Agent (`ShopGuard`) with strong emphasis on production readiness. 
+In Week 2 and Week 3, I built the core of **ShopGuard** — a production-ready E-commerce Customer Service Agent.
 
-The main goal was to move beyond basic LangGraph graphs and implement **industrial-grade features**:
-- Full tracing with LangSmith
-- Automatic response evaluation
-- Self-correction when quality is low
-- Structured prompting and clean architecture
+The focus was on moving from basic LangGraph to a more industrial-grade system by integrating:
+- Full observability and self-correction with **LangSmith**
+- Standardized data access through **MCP (Model Context Protocol)**
+- Clean, modular architecture for maintainability
 
-This project serves as the foundation for the full ShopGuard E-commerce AI Agent Harness.
+This project demonstrates how to build a reliable AI Agent that can securely fetch real customer and order data via MCP, while maintaining high response quality through self-correction.
 
-## Key Features Implemented
+## Key Features
 
-- **LangSmith Integration**: Full tracing of every node and chain for observability
-- **Self-Correction Mechanism**: Automatically evaluates agent responses and triggers re-generation if score < 0.82
-- **Professional System Prompt**: Designed specifically for e-commerce customer service
-- **Modular Architecture**: Clean separation of config, prompts, nodes, and graph
-- **Short-term Memory**: Using LangGraph Checkpointer with `thread_id`
-- **Structured Prompting**: Proper use of `MessagesPlaceholder`
+- **LangSmith Integration**: Full tracing and custom evaluation for every agent run
+- **Self-Correction Mechanism**: Automatically evaluates and improves low-quality responses (score < 0.85)
+- **MCP Integration**: Agent communicates with external data sources through standardized MCP protocol
+  - `get_customer()` — retrieves customer profile and preferences
+  - `get_order()` — retrieves real-time order information
+- **Professional Prompting**: Domain-specific system prompt for e-commerce customer service
+- **Short-term Memory**: LangGraph Checkpointer with `thread_id`
+- **Modular Design**: Clean separation of config, prompts, nodes, graph, and MCP client
+
+## Demo Highlights
+
+The agent can:
+- Greet customers using their real name from MCP
+- Respect user preferences (e.g., bullet points)
+- Show empathy when handling issues (delayed orders, damaged items)
+- Provide clear next steps and ask for confirmation
+- Self-correct when response quality is insufficient
 
 ## Project Structure
 
@@ -33,31 +41,47 @@ This project serves as the foundation for the full ShopGuard E-commerce AI Agent
 Week-2-ecommerce-agent-core/
 ├── config.py          # LLM and LangSmith configuration
 ├── prompts.py         # Professional e-commerce system prompts
-├── nodes.py           # Agent node with self-correction logic
+├── nodes.py           # Agent node with self-correction + MCP integration
 ├── graph.py           # LangGraph assembly
-├── main.py            # Demo runner
+├── mcp_client.py      # MCP Client wrapper
+├── main.py            # Async demo runner
 ├── requirements.txt
 └── .env.example
 ```
 
-## Key Technical Learnings
 
-- How to integrate **LangSmith** for production tracing and debugging
-- Building an effective **Self-Correction** loop using custom evaluators
-- Writing high-quality, domain-specific system prompts for customer service
-- Structuring a scalable LangGraph project (separation of concerns)
-- Using `traceable` decorator for better observability in LangSmith
+## Technologies Used
 
-## Demo
+- **LangGraph** — Core stateful agent framework
+- **LangSmith** — Production observability and evaluation
+- **FastMCP** — Standardized Model Context Protocol for data access
+- **Pydantic** — Structured data handling
+- **OpenRouter** — LLM access (free tier)
 
-Setup the .env first
-Run the demo to see the agent in action:
+## Key Learnings
+
+- How to integrate external data sources securely using MCP protocol
+- Building reliable self-correction loops with structured evaluation
+- Designing modular agent architecture for scalability
+- Using async patterns with LangGraph for MCP calls
+
+## Next Steps
+
+- Week 4: Implement Temporal for long-running workflows (e.g., multi-day order follow-ups)
+- Week 5: Full multi-agent harness + Long-term Memory (Store)
+- Week 6: FastAPI deployment + complete ShopGuard portfolio project
+
+---
+
+**How to Run Demo**
+
 ```bash
 cd Week-2-ecommerce-agent-core
-pip install -r requirements.txt
+
+# 1. Start MCP Server (in another terminal)
+cd ../Week-3-mcp-server
 python main.py
 
-## Langsmith
-
-
-![alt text](image.png)
+# 2. Run the Agent
+cd ../Week-2-ecommerce-agent-core
+python main.py

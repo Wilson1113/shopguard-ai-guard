@@ -18,29 +18,11 @@ class ResponseEvaluation(BaseModel):
     suggestion: Optional[str] = Field(None)
 
 
-async def evaluate_response_structured(response_content: str) -> ResponseEvaluation:
-    evaluation_prompt = f"""Evaluate this e-commerce customer service response:
-
-Response:
-{response_content}
-
-Return a structured evaluation."""
-
-    structured_llm = llm.with_structured_output(ResponseEvaluation)
-    try:
-        return structured_llm.invoke(evaluation_prompt)
-    except:
-        return ResponseEvaluation(
-            score=0.75, accuracy=0.7, politeness=0.9, clarity=0.8, helpfulness=0.7,
-            issues=["Evaluation failed"], suggestion="Regenerate with better accuracy."
-        )
-
-
 @traceable(name="agent_node")
-async def agent_node(state: MessagesState):   # 注意改为 async
+async def agent_node(state: MessagesState):
     user_id = "customer_001"
 
-    # 通过 MCP 获取 Long-term + 当前订单/客户数据
+    # === 通过 MCP 获取实时客户数据 ===
     async with ShopMCPClient() as mcp:
         try:
             customer = await mcp.get_customer(user_id)
@@ -56,6 +38,7 @@ async def agent_node(state: MessagesState):   # 注意改为 async
             long_term_facts = "No customer data available from MCP."
             print(f"❌ MCP Failed: {e}")
 
+    # === 构建更自然的 System Prompt ===
     prompt = get_agent_prompt()
     chain = prompt | llm
 
@@ -64,7 +47,7 @@ async def agent_node(state: MessagesState):   # 注意改为 async
         "long_term_facts": long_term_facts
     })
 
-    # Self-Correction
+    # === Self-Correction ===
     eval_result = await evaluate_response_structured(response.content)
 
     print(f"📊 Evaluation Score: {eval_result.score:.2f}")
@@ -72,10 +55,12 @@ async def agent_node(state: MessagesState):   # 注意改为 async
     if eval_result.score < 0.85 or len(eval_result.issues) > 1:
         print("🔄 Self-correction triggered...")
 
-        correction_prompt = f"""Previous response had issues: {eval_result.issues}
-Suggestion: {eval_result.suggestion or 'Improve accuracy and helpfulness.'}
+        correction_prompt = f"""The previous response was a bit too formal and repetitive.
 
-Please generate a better response."""
+Please rewrite it to sound more like a warm, natural, and caring customer service agent.
+Show more empathy, use smoother transitions, and make the language more conversational.
+
+Previous response: {response.content}"""
 
         better_response = (prompt | llm).invoke({
             "messages": state["messages"] + [
@@ -84,7 +69,36 @@ Please generate a better response."""
             ],
             "long_term_facts": long_term_facts
         })
-
         return {"messages": [better_response]}
 
     return {"messages": [response]}
+
+
+async def evaluate_response_structured(response_content: str) -> ResponseEvaluation:
+    evaluation_prompt = f"""You are an expert evaluator for e-commerce customer service.
+
+Evaluate this response:
+
+Response:
+{response_content}
+
+Return ONLY a valid JSON object with the following fields:
+{{
+  "score": 0.92,
+  "accuracy": 0.95,
+  "politeness": 0.98,
+  "clarity": 0.9,
+  "helpfulness": 0.93,
+  "issues": ["list any problems"],
+  "suggestion": "optional suggestion"
+}}
+"""
+
+    structured_llm = llm.with_structured_output(ResponseEvaluation)
+    try:
+        return structured_llm.invoke(evaluation_prompt)
+    except:
+        return ResponseEvaluation(
+            score=0.8, accuracy=0.8, politeness=0.9, clarity=0.8, helpfulness=0.8,
+            issues=["Could not evaluate"], suggestion="Make response more natural"
+        )
