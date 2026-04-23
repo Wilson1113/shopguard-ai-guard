@@ -34,14 +34,18 @@ async def get_order(order_id: str) -> Order:
     """Get order details by ID"""
     print(f"🔍 Getting order {order_id}")
     if order_id in fake_db["orders"]:
-        return fake_db["orders"][order_id].model_dump()
+        data = fake_db["orders"][order_id].model_dump()
+        data["created_at"] = data["created_at"].isoformat()
+        return data
     raise ValueError(f"Order {order_id} not found")
 
 @mcp.resource("customers://{customer_id}")
 async def get_customer(customer_id: str) -> Customer:
     """Get customer profile"""
     if customer_id in fake_db["customers"]:
-        return fake_db["customers"][customer_id].model_dump()
+        data = fake_db["customers"][customer_id].model_dump()
+        data["created_at"] = data["created_at"].isoformat()
+        return data
     raise ValueError(f"Customer {customer_id} not found")
 
 # ====================== Tools ======================
