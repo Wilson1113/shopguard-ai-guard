@@ -7,6 +7,7 @@ from mcp_client import ShopMCPClient
 import json
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from temporal_client import TemporalClient
 
 class ResponseEvaluation(BaseModel):
     score: float = Field(..., ge=0.0, le=1.0)
@@ -22,7 +23,7 @@ class ResponseEvaluation(BaseModel):
 async def agent_node(state: MessagesState):
     user_id = "customer_001"
 
-    # === 通过 MCP 获取实时客户数据 ===
+    # === Get the real time customer data through mcp ===
     async with ShopMCPClient() as mcp:
         try:
             customer = await mcp.get_customer(user_id)
@@ -38,7 +39,7 @@ async def agent_node(state: MessagesState):
             long_term_facts = "No customer data available from MCP."
             print(f"❌ MCP Failed: {e}")
 
-    # === 构建更自然的 System Prompt ===
+    # === Building a more natural System Prompt ===
     prompt = get_agent_prompt()
     chain = prompt | llm
 
@@ -46,6 +47,16 @@ async def agent_node(state: MessagesState):
         "messages": state["messages"],
         "long_term_facts": long_term_facts
     })
+
+    # === Trigger Long-Term Order Follow-up Workflow ===
+    last_message = state["messages"][-1].content.lower()
+    if "order" in last_message and ("status" in last_message or "arrived" in last_message or "delay" in last_message):
+        try:
+            temporal = TemporalClient()
+            await temporal.trigger_order_followup("ORD-78492", user_id)
+            response = AIMessage(content=response.content + "\n\n(I have started the order follow-up process for you and will continue to track it for you in the next few days.)")
+        except Exception as e:
+            print(f"Failed to trigger Temporal Workflow: {e}")
 
     # === Self-Correction ===
     eval_result = await evaluate_response_structured(response.content)
@@ -69,7 +80,17 @@ Previous response: {response.content}"""
             ],
             "long_term_facts": long_term_facts
         })
-        return {"messages": [better_response]}
+
+        # === Trigger Long-Term Order Follow-up Workflow ===
+        last_message = state["messages"][-1].content.lower()
+        if "order" in last_message and ("status" in last_message or "arrived" in last_message or "delay" in last_message):
+            try:
+                temporal = TemporalClient()
+                await temporal.trigger_order_followup("ORD-78492", user_id)
+                better_response = AIMessage(content=better_response.content + "\n\n(I have started the order follow-up process for you and will continue to track it for you in the next few days.)")
+            except Exception as e:
+                print(f"Failed to trigger Temporal Workflow: {e}")
+            return {"messages": [better_response]}
 
     return {"messages": [response]}
 
