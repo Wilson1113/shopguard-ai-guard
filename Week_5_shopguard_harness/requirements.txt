@@ -1,0 +1,7 @@
+langgraph
+langchain
+langsmith
+fastmcp
+temporalio
+pydantic
+python-dotenv
