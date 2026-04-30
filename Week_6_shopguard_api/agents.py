@@ -8,14 +8,15 @@ async def researcher_agent(state):
     """Researcher Agent: Focus on collecting information."""
     user_id = "customer_001"
     
-    # 获取 Long-term Memory
     long_term = get_facts(user_id)
     long_term_str = "\n".join([f"- {k}: {v}" for k, v in long_term.items()]) or "No previous facts."
 
+    print("🔍 Researcher Agent: Fetching customer and order data...")
     mcp = ShopMCPClient()
     try:
         customer = await mcp.get_customer(user_id)
         order = await mcp.get_order("ORD-78492")
+        print(f"✅ Researcher: Found customer '{customer.get('name')}' and order status '{order.get('status')}'")
         
         save_fact(user_id, "last_interaction", "order_status_inquiry")
         save_fact(user_id, "name", customer.get("name"))
@@ -33,10 +34,11 @@ Preferences: {customer.get('preferences')}
 
 
 async def executor_agent(state):
-    """Executor Agent: Execute actual operations"""
+    print("⚡ Executor Agent: Triggering Temporal follow-up workflow...")
     temporal = TemporalClient()
     try:
         await temporal.trigger_order_followup("ORD-78492", "customer_001")
+        print("✅ Executor: Temporal workflow triggered successfully.")
         return {"messages": [AIMessage(content="✅ I have triggered the long-term follow-up workflow for your order.")]}
     except Exception as e:
         return {"messages": [AIMessage(content=f"Execution failed: {e}")]}
@@ -68,6 +70,8 @@ Rules:
 
 Final Reply to Customer:"""
 
+    print("📝 Reviewer Agent: Polishing the final response...")
     final_response = llm.invoke(review_prompt).content.strip()
+    print("✨ Reviewer: Final response generated successfully.")
 
     return {"messages": [AIMessage(content=final_response)]}

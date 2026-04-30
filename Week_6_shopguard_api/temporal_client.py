@@ -27,5 +27,5 @@ class TemporalClient:
         return {
             "workflow_id": workflow_id,
             "status": "started",
-            "message": f"我已为你启动订单 {order_id} 的长期跟进流程，将在未来几天持续跟踪并通知你。"
+            "message": f"I have started the long-term follow-up process for order {order_id}. I will continue to track and notify you in the coming days."
         }

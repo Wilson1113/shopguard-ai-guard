@@ -4,7 +4,7 @@ from mcp_client import ShopMCPClient
 
 @activity.defn
 async def check_order_status_activity(order_id: str) -> str:
-    """检查订单状态（模拟调用 MCP）"""
+    """Check order status"""
     print(f"📦 Activity: Checking status for order {order_id}")
     mcp = ShopMCPClient()
     try:
@@ -16,11 +16,11 @@ async def check_order_status_activity(order_id: str) -> str:
 
 @activity.defn
 async def notify_customer_activity(customer: CustomerInput) -> str:
-    """发送客户通知"""
+    """Send customer notification"""
     print(f"📧 Activity: Notifying customer {customer.customer_id}")
     mcp = ShopMCPClient()
     try:
-        result = await mcp.update_order_status("ORD-78492", "follow_up_sent")  # 示例
+        result = await mcp.update_order_status("ORD-78492", "follow_up_sent")
         return f"Notification sent to {customer.customer_id}: {customer.message}"
     except Exception as e:
         return f"Failed to notify customer: {str(e)}"

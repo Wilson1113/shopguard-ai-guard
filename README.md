@@ -33,8 +33,8 @@ Instead of simple prompt-based agents, I focused on **Harness Engineering**: mak
 | 2    | Production Core + Self-Correction  | LangSmith, Evaluation, MCP Client    | Completed |
 | 3    | Standardized Data Layer            | FastMCP Server (Resources & Tools)   | Completed |
 | 4    | Long-running Reliable Workflows    | Temporal Python SDK                  | Completed |
-| 5    | Full Multi-Agent Harness           | Long-term Store + Guardrails         | In Progress |
-| 6    | Deployment & Portfolio             | FastAPI + Vercel                     | Planned |
+| 5    | Full Multi-Agent Harness           | Long-term Store + Guardrails         | Completed |
+| 6    | Deployment & Portfolio             | FastAPI + Vercel                     | Completed |
 
 ---
 
@@ -45,19 +45,75 @@ Instead of simple prompt-based agents, I focused on **Harness Engineering**: mak
 - **Data Protocol**: FastMCP (Model Context Protocol)
 - **Long-running Tasks**: Temporal
 - **Memory**: Checkpointer (short-term) + Store (long-term)
-- **LLM**: OpenRouter / DeepSeek (free tier)
-- **Deployment**: FastAPI (planned)
+- **LLM**: OpenRouter / Groq (free tier)
+- **Deployment**: FastAPI
 
 ---
 
 ## Demo Highlights
 
-- Real-time customer and order data fetching via MCP
-- Automatic self-correction when response quality is low
-- Natural conversation with user name and preference awareness
-- Triggering of long-running Temporal workflows from normal chat
+- **Real-time customer and order data fetching via MCP** (Resources)
+- **Automatic self-correction when response quality is low** (Self-Correction)
+- **Triggering of long-running Temporal workflows from normal chat** (Workflows)
+- **Natural conversation with user name and preference awareness** (Memory & LLM)
 
-**Demo Video**: [Link will be added]
+## Demo Guide
+
+0. **Install dependencies and Setup .env file**
+   ```bash
+   pip install -r requirements.txt
+   cp .env.example .env
+   # Then edit .env with your actual values (OpenRouter API key, etc)
+   ```
+
+1. **Start Temporal Server**  
+   Download the Temporal CLI from: [https://temporal.io/setup/install-temporal-cli](https://temporal.io/setup/install-temporal-cli)  
+   Then start the Temporal server with:
+   ```bash
+   temporal server start-dev
+    ```
+
+2. **Start the Worker**  
+   Open a new terminal, go to the Week-6-shopguard-api directory, and run:
+   ```bash
+   python worker.py
+   ```
+
+3. **Start the MCP Server**  
+   Open a new terminal, go to the Week-6-shopguard-api directory, and run:
+   ```bash
+   python server.py
+   ```
+   
+4. **Start the API**  
+   Open a new terminal, go to the Week-6-shopguard-api directory, and run:
+   ```bash
+   python main.py
+   ```
+   
+5. **Send Query**  
+   Open a new terminal, go to the Week-6-shopguard-api directory, and run:
+   ```bash
+    curl -X POST http://localhost:8001/api/chat \
+    -H "Content-Type: application/json" \
+    -d '{
+        "message": "Hi, my order #ORD-78492 has not arrived yet. Can you check the status?",
+        "thread_id": "test-001"
+    }'
+
+    curl -X POST http://localhost:8001/api/chat \
+    -H "Content-Type: application/json" \
+    -d '{
+        "message": "The item I received is damaged. I want to request a refund.",
+        "thread_id": "test-001"
+    }'
+    ```
+6. **View the workflow graph**
+    Open a new terminal, go to the Week-6-shopguard-api directory, and run:
+    ```bash
+    python graph.py
+    ```
+**Demo Video**: [https://www.loom.com/share/1e2dc830a24b44ec9304e495dc57160f]
 
 ---
 
@@ -67,8 +123,8 @@ Instead of simple prompt-based agents, I focused on **Harness Engineering**: mak
 - `Week-2-ecommerce-agent-core/` – Core Agent with LangSmith + MCP
 - `Week-3-mcp-server/` – Standardized data access server
 - `Week-4-temporal-workflows/` – Long-running order follow-up workflows
-- `Week-5-shopguard-harness/` – Full multi-agent system (in progress)
-- `Week-6-shopguard-api/` – Production deployment (planned)
+- `Week-5-shopguard-harness/` – Full multi-agent system
+- `Week-6-shopguard-api/` – Production deployment
 
 ---
 
@@ -82,7 +138,6 @@ Instead of simple prompt-based agents, I focused on **Harness Engineering**: mak
 
 ## Future Roadmap
 
-- Complete Week 5 multi-agent collaboration
 - Deploy as SaaS for Shopify merchants
 - Add more tools (inventory check, return label generation, etc.)
 - Open to freelance and collaboration opportunities

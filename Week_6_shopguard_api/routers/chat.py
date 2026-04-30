@@ -15,6 +15,5 @@ async def chat(request: ChatRequest):
     )
 
     return ChatResponse(
-        response=result["messages"][-1].content,
-        workflow_triggered="Workflow triggered" in result["messages"][-1].content
+        response=result["messages"][-1].content
     )

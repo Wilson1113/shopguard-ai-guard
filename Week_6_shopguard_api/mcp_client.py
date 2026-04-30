@@ -5,7 +5,6 @@ import json
 
 class ShopMCPClient:
     """MCP Client"""
-
     def __init__(self, base_url: str = "http://localhost:8000/mcp"):
         self.base_url = base_url
 
@@ -15,7 +14,6 @@ class ShopMCPClient:
             try:
                 result = await client.read_resource(f"orders://{order_id}")
                 
-                # 处理 FastMCP 返回的复杂结构 (list + TextResourceContents)
                 if isinstance(result, list) and result:
                     item = result[0]
                     if hasattr(item, "text") and item.text:

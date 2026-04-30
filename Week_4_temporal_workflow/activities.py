@@ -4,7 +4,7 @@ from mcp_client import ShopMCPClient
 
 @activity.defn
 async def check_order_status_activity(order_id: str) -> str:
-    """检查订单状态（模拟调用 MCP）"""
+    """Check OrderStatus (simulate calling MCP)"""
     print(f"📦 Activity: Checking status for order {order_id}")
     mcp = ShopMCPClient()
     try:
@@ -16,7 +16,7 @@ async def check_order_status_activity(order_id: str) -> str:
 
 @activity.defn
 async def notify_customer_activity(customer: CustomerInput) -> str:
-    """发送客户通知"""
+    """Send Customer Notification"""
     print(f"📧 Activity: Notifying customer {customer.customer_id}")
     mcp = ShopMCPClient()
     try:

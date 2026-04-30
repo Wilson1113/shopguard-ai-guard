@@ -25,8 +25,7 @@ class OrderFollowUpWorkflow:
         # Step 3: Send follow-up notification
         notification = await workflow.execute_activity(
             notify_customer_activity,
-            CustomerInput(customer_id, f"Your order {order_id} is still in transit. Do you need assistance?",
-            ),
+            CustomerInput(customer_id=customer_id, message=f"Your order {order_id} is still in transit. Do you need assistance?"),
             start_to_close_timeout=timedelta(seconds=30)
         )
 
